@@ -10,16 +10,14 @@ class AuthService {
 
         });
 
-        const data = await Response.json()
-
-
-
+        const data = await resp.json()
 
         if (!resp.ok) throw new Error("Error al iniciar sesión");
 
         if (data.token) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify({email}));
+            window.dispatchEvent(new CustomEvent('auth-change'))
         }
 
 
@@ -36,9 +34,9 @@ class AuthService {
 
         });
 
-        const data = await Response.json()
+        const data = await resp.json()
 
-        if (!resp.ok) throw new Error("Error al registrar al usuario");
+        if (!resp.ok) throw new Error(data.message || "Error al registrar al usuario");
 
         return data;
 
@@ -47,6 +45,7 @@ class AuthService {
     static logout(){
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+        window.dispatchEvent(new CustomEvent('auth-change'))
     }
 
     static isAuthenticate() {
@@ -60,7 +59,7 @@ class AuthService {
 
     static getUser(){
         const user = localStorage.getItem('user');
-        return JSON.parse(user)
+        return user ? JSON.parse(user) : null
 
     }
 

@@ -18,13 +18,30 @@ class PostService{
         
         
         if(!res.ok){
-            if(res.status === 401) throw new Error("La sesión ha expirado");
-            throw new Error("Error al obtener el listado de posts")
+            if(res.status === 401) window.dispatchEvent(new CustomEvent('auth-change'));
+            throw new Error(data.message || "Error al obtener el listado de posts")
         }
 
         return data;
 
     }
+
+
+    static async create(title, comment){
+        const res = await fetch(`${BASE_URL}/posts`, {
+            method: 'POST',
+            headers : this.getHeaders(),
+            body: JSON.stringify((title, comment))
+
+        })
+
+        const data = await res.json()
+        if(!res.ok)throw new Error (data.message || 'Error al crear el post')
+        return data
+        
+    }
+
+
 }
 
 export default PostService;

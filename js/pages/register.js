@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             try {
                 
                 await AuthService.register(name, email, password);
-                alert('Registro Exitoso')
+                alert('Registro Exitoso. Ahora puedes iniciar sesión :D')
                 window.location.href = 'login.html';
             } catch (error) {
                 alert(error.message)

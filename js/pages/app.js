@@ -1,6 +1,14 @@
 import AuthService from "../services/AuthService.js";
 import PostService from "../services/PostService.js";
 
+
+
+    if (!AuthService.isAuthenticate()) {
+        window.location.href = 'login.html'
+    }
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
 
 
@@ -8,16 +16,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const composeUserinfo = document.getElementById('composer-user-info');
     const logoutBtn = document.getElementById('logout-btn');
 
+
+    
+    if (AuthService.isAuthenticate()) {
+        initFeed();
+    } else {
+        window.location.href = 'login.html'
+    }
+
+
+
     const initFeed = () => {
         const user = AuthService.getUser();
 
         if (!user) return;
 
         composeUserinfo.innerHTML = `
-            <img class="avatar" src="https://ui-avatars.com/api/?${user.email}=&background=4F46E5&color=fff" alt="Profile">
+            <img class="avatar" src="https://ui-avatars.com/api/?${user.name || user.email}=&background=4F46E5&color=fff" alt="Profile">
             <div class="composer-trigger" id="open-post-modal">
                 ¿Qué estás pensando, ${user.email.split('@')[0]}?
             </div>`
+
+        document.getElementById('open-post-modal').addEventListener('click', showPostModal)
 
         logoutBtn.addEventListener('click', () => {
             AuthService.logout();
@@ -35,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             postContainer.innerHTML = posts.length ? '' : "<p>No hay posts aún</p>"
 
-            posts.forEach(post => {
+            posts.reverse().forEach(post => {
                 const postEl = document.createElement('div');
                 postEl.className = 'post-card fade-in';
                 postEl.innerHTML = `
@@ -68,29 +88,103 @@ document.addEventListener('DOMContentLoaded', () => {
                     `).join('') : ''}
                     <form class="comment-form" data-post-id="${post.id}">
                         <img class="avatar" style="width: 32px; height: 32px;"
-                            src="https://ui-avatars.com/api/?name=${user?.email || 'U'}&background=4F46E5&color=fff" alt="Avatar">
+                            src="https://ui-avatars.com/api/?name=${user?.name || 'U'}&background=4F46E5&color=fff" alt="Avatar">
                         <input type="text" class="comment-input" placeholder="Escribe un comentario..." required>
                     </form>
                 </div> `
             
-            postContainer.appendChild(postEl)
+            
+            
+            
+                const commentForm = postEl.querySelector('.comment-form')
+                commentForm.addEventListener('submit', async (e)=>{
+                    e.preventDefault()
+                    const input = e.target.querySelector('input')
+                    const content = input.value
+
+                    try {
+                        
+                        await CommentService.addComment(post.id, content)
+                        input.value = ''
+                        loadPosts()
+
+
+                    } catch (error) {
+                        alert(error.message)
+                    }
+
+
+
+                });
+            
+            
+            
+            
+                postContainer.appendChild(postEl)
             
             })
 
             
 
         } catch (error) {
-            alert(error.message)
+            postContainer.innerHTML = `<p style="color: red; text-align: center;">Error al cargar posts: ${error.message}</p>`
         }
 
 
 
+    };
+
+
+    const showPostModal = () => {
+
+        const modalRoot = document.getElementById('modal-root');
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="modal-content fade-in">
+            <div class="modal-header">
+                <h2>Crear publicación</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-post-form">
+                <div class="form-group">
+                    <input type="text" id="post-title" placeholder="Título de tu post" required>
+                </div>
+                <div class="form-group">
+                    <textarea id="post-content" placeholder="¿Qué estás pensando?" style="width: 100%; min-height: 150px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); resize: vertical;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Publicar</button>
+                </form>
+            </div>
+            </div>
+        `;
+
+        const close = () => modal.remove();
+        modal.querySelector('.close-modal').addEventListener('click', close);
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+        const createPostForm = modal.querySelector('#create-post-form');
+        createPostForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            try {
+            await PostService.create(title, content);
+            close();
+            loadPosts();
+            } catch (err) {
+            alert(err.message);
+            }
+        });
+
+        modalRoot.appendChild(modal);
+
+
     }
 
-    if (AuthService.isAuthenticate()) {
-        initFeed();
-    } else {
-        window.location.href = 'login.html'
-    }
+
+
 
 })
